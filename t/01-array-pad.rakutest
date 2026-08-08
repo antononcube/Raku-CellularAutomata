@@ -1,0 +1,32 @@
+use v6.d;
+
+use Test;
+use CellularAutomata::Utilities;
+
+is-deeply array-pad([1, 2, 3], 1), [0, 1, 2, 3, 0], 'pads both sides with zero';
+is-deeply array-pad([1, 2, 3], [2, 4]), [0, 0, 1, 2, 3, 0, 0, 0, 0],
+    'pads asymmetrically';
+is-deeply array-pad([1, 2, 3, 4], [-2, 0]), [3, 4], 'crops from the left';
+is-deeply array-pad([1, 2, 3, 4], [0, -2]), [1, 2], 'crops from the right';
+is-deeply array-pad([1, 2, 3], 2, 'x'), ['x', 'x', 1, 2, 3, 'x', 'x'],
+    'pads with a constant expression';
+is-deeply array-pad([1, 2, 3], 2, [10, 20]), [20, 10, 1, 2, 3, 10, 20],
+    'cycles a padding sequence';
+is-deeply array-pad([1, 2, 3], 2, 'Periodic'), [2, 3, 1, 2, 3, 1, 2],
+    'uses periodic padding';
+is-deeply array-pad([[1, 2], [3, 4]], [[1], [2]]),
+    [[0, 0, 0, 0, 0, 0], [0, 0, 1, 2, 0, 0],
+     [0, 0, 3, 4, 0, 0], [0, 0, 0, 0, 0, 0]],
+    'pads selected dimensions of a matrix';
+is-deeply array-pad([1, 4, 9], 2, 'Extrapolated'),
+    [-5.0, -2.0, 1, 4, 9, 14.0, 19.0], 'extrapolates linearly';
+is-deeply array-pad([1, 2, 3], 1, 'Fixed'), [1, 1, 2, 3, 3],
+    'repeats fixed boundary values';
+is-deeply array-pad([1, 2], 1, 'x'), ['x', 1, 2, 'x'],
+    'treats an arbitrary string as a constant';
+dies-ok { array-pad([1, 2], [[1, 2], 3]) },
+    'rejects malformed padding specifications';
+dies-ok { array-pad([1, 2], [-3, 0]) },
+    'rejects impossible crops';
+
+done-testing;

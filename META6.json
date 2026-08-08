@@ -1,0 +1,28 @@
+{
+    "name": "CellularAutomata",
+    "description": "Raku package for the representation and evolution of cellular automata.",
+    "version": "0.0.1",
+    "authors": [
+        "Anton Antonov"
+    ],
+    "auth": "zef:antononcube",
+    "depends": [
+        "Math::SparseMatrix"
+    ],
+    "build-depends": [],
+    "provides": {
+        "CellularAutomata": "lib/CellularAutomata.rakumod",
+        "CellularAutomata::Sparse": "lib/CellularAutomata/Sparse.rakumod",
+        "CellularAutomata::Utilities": "lib/CellularAutomata/Utilities.rakumod"
+    },
+    "license": "Artistic-2.0",
+    "tags": [
+        "cellular automata",
+        "cellular",
+        "automata",
+        "game of life",
+        "cellular automaton"
+    ],
+    "api": "0",
+    "source-url": "https://github.com/antononcube/Raku-CellularAutomata"
+}

@@ -12,6 +12,7 @@
     "build-depends": [],
     "provides": {
         "CellularAutomata": "lib/CellularAutomata.rakumod",
+        "CellularAutomata::Scan": "lib/CellularAutomata/Scan.rakumod",
         "CellularAutomata::Sparse": "lib/CellularAutomata/Sparse.rakumod",
         "CellularAutomata::Utilities": "lib/CellularAutomata/Utilities.rakumod"
     },

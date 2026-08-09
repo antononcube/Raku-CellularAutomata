@@ -67,4 +67,21 @@ dies-ok { $scan.evolve(init => [1,], :steps(1)) }, 'requires a rule';
 dies-ok { $scan.evolve(init => [1,], :rule(999), :steps(1)) },
     'rejects an invalid elementary rule';
 
+## 11
+subtest {
+
+    is-deeply
+            $scan.evolve(:30rule, init => [[1, 1], [1, 0, 1, 1]], :0steps),
+            [[1,],];
+
+    is-deeply
+            $scan.evolve(:30rule, init => [[1, 1], [1, 0, 1, 1]], :1steps),
+            [[1, 1], [0, 0]];
+
+    is-deeply
+            $scan.evolve(:30rule, init => [[1, 1], [1, 0, 1, 1]], :2steps),
+            [[1, 1, 1], [0, 0, 0], [0, 0, 0]];
+
+}, 'multiple values superimposed on multiple background values';
+
 done-testing;

@@ -210,7 +210,7 @@ class CellularAutomata::Scan {
 
     sub time-selection(Mu:D $time --> Hash:D) {
         if $time ~~ Int {
-            return { maximum => $time.Int, selected => (^$time.Int).Array, scalar => False };
+            return { maximum => $time.Int, selected => ( 0 ... $time.Int).Array, scalar => False };
         }
 
         fail 'Time specification must be an integer or positional selector.'

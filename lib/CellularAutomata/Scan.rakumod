@@ -10,7 +10,7 @@ class CellularAutomata::Scan {
 
     sub local-range(Mu:D $value --> List:D) {
         return ($value, $value) if $value ~~ Int;
-        if $value ~~ Rat || $value ~~ Num {
+        if $value ~~ Rat:D || $value ~~ Num:D {
             my $numerator = $value.numerator;
             my $denominator = $value.denominator;
             return ($denominator, $numerator);
@@ -210,7 +210,7 @@ class CellularAutomata::Scan {
 
     sub time-selection(Mu:D $time --> Hash:D) {
         if $time ~~ Int {
-            return { maximum => $time.Int, selected => (0 .. $time.Int).Array, scalar => False };
+            return { maximum => $time.Int, selected => (^$time.Int).Array, scalar => False };
         }
 
         fail 'Time specification must be an integer or positional selector.'
@@ -231,8 +231,8 @@ class CellularAutomata::Scan {
         my $step = @values[2] // 1;
         fail 'Time selector increment cannot be zero.' if $step == 0;
         my @selected = $start <= $end
-                ?? ($start, $start + $step ... $end).grep(*<= $end)
-                !! ($start, $start + $step ... $end).grep(*>= $end);
+                ?? ($start, $start + $step ... $end).grep(* ≤ $end)
+                !! ($start, $start + $step ... $end).grep(* ≥ $end);
         { maximum => @selected.max, selected => @selected.Array, scalar => False }
     }
 

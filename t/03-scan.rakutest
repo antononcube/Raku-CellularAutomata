@@ -5,22 +5,32 @@ use CellularAutomata::Scan;
 
 my $scan = CellularAutomata::Scan.new;
 
+## 1
 is-deeply $scan.evolve(:rule(30), init => [[1], 0], :steps(2)),
     [[0, 0, 1, 0, 0], [0, 1, 1, 1, 0], [1, 1, 0, 0, 1]],
     'evolves an elementary rule from a background seed';
+
+## 2
 is-deeply $scan.evolve(:rule(90), init => [1, 0, 0, 0, 0], :steps(1)),
     [[1, 0, 0, 0, 0], [0, 1, 0, 0, 1]],
     'evolves a cyclic initial condition';
+
+## 3
 is-deeply $scan.evolve(:rule('Rule30'), init => [[1], 0], :steps(1)),
     [[0, 1, 0], [1, 1, 1]],
     'resolves a named rule';
+
+## 4
 is-deeply $scan.evolve(:rule({ rule-number => 30 }), init => [[1], 0], :steps(1)),
     [[0, 1, 0], [1, 1, 1]],
     'resolves an association rule';
+
+## 5
 is-deeply $scan.evolve(:rule([1, [2, 1], 1]), init => [[1], 0], :steps(1)),
     [[0, 1, 0], [0, 0, 0]],
     'resolves a totalistic rule';
 
+## 6
 my &explicit-rule = -> @neighborhood, Int $step {
     (@neighborhood[0] + @neighborhood[2]) mod 2
 };
@@ -28,24 +38,32 @@ is-deeply $scan.evolve(:rule([&explicit-rule, [], 1]), init => [[1], 0], :steps(
     [[0, 1, 0], [1, 0, 1]],
     'applies an explicit callable rule';
 
-my @replacements;
-@replacements.push(([1, 1, 1] => 0));
-@replacements.push(([1, 1, 0] => 1));
-@replacements.push(([1, 0, 1] => 1));
-@replacements.push(([1, 0, 0] => 0));
-@replacements.push(([0, 1, 1] => 1));
-@replacements.push(([0, 1, 0] => 0));
-@replacements.push(([0, 0, 1] => 1));
-@replacements.push(([0, 0, 0] => 0));
-my $replacement-rule = @replacements;
-is-deeply $scan.evolve(init => [[1], 0], :rule($replacement-rule), :steps(1)),
-    [[0, 1, 0], [1, 0, 0]],
-    'applies explicit neighborhood replacements';
+## 7
+subtest {
+    my @replacements;
+    @replacements.push(([1, 1, 1] => 0));
+    @replacements.push(([1, 1, 0] => 1));
+    @replacements.push(([1, 0, 1] => 1));
+    @replacements.push(([1, 0, 0] => 0));
+    @replacements.push(([0, 1, 1] => 1));
+    @replacements.push(([0, 1, 0] => 0));
+    @replacements.push(([0, 0, 1] => 1));
+    @replacements.push(([0, 0, 0] => 0));
+    my $replacement-rule = @replacements;
+    is-deeply $scan.evolve(init => [[1], 0], :rule($replacement-rule), :steps(1)),
+            [[0, 1, 0], [1, 0, 0]],
+            'applies explicit neighborhood replacements';
+}, 'rule by replacements';
 
+## 8
 is-deeply $scan.evolve(init => [[1], 0], :rule(30), :time([[2]])),
     [1, 1, 0, 0, 1],
     'returns a selected state';
+
+## 9
 dies-ok { $scan.evolve(init => [1,], :steps(1)) }, 'requires a rule';
+
+## 10
 dies-ok { $scan.evolve(init => [1,], :rule(999), :steps(1)) },
     'rejects an invalid elementary rule';
 

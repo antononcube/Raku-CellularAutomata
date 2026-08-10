@@ -5,7 +5,7 @@ use CellularAutomata::Utilities;
 class CellularAutomata::Scan {
 
     sub is-positional(Mu:D $value --> Bool:D) {
-        $value ~~ Positional && $value !~~ Str
+        $value ~~ Array:D | List:D | Seq:D
     }
 
     sub local-range(Mu:D $value --> List:D) {
@@ -33,14 +33,14 @@ class CellularAutomata::Scan {
 
     sub rule-model(Mu:D $rule --> Hash:D) {
         my $normalized-rule = $rule ~~ Str ?? named-rule($rule) !! $rule;
-        if $normalized-rule ~~ Int {
+        if $normalized-rule ~~ Int:D {
 
             fail 'Elementary rule numbers must be between 0 and 255.'
             unless 0 <= $normalized-rule <= 255;
 
             return { kind => 'number', code => $normalized-rule, colors => 2, left => 1, right => 1 };
         }
-        if $normalized-rule ~~ Hash {
+        if $normalized-rule ~~ Map:D {
             my %rule = $normalized-rule;
             my $dimension = %rule<dimension> // 1;
 
@@ -73,13 +73,20 @@ class CellularAutomata::Scan {
     }
 
     sub model-from-positional(Mu:D $rule --> Hash:D) {
-        my @rule = $rule.list;
+        my @rule = |$rule.Array;
         fail 'Rule specification cannot be empty' unless @rule;
-        if @rule.all ~~ Pair {
-            return { kind => 'replacements', replacements => @rule.Array,
-                     colors => 2, left => ((@rule[0].key.elems - 1) div 2),
-                     right => ((@rule[0].key.elems - 1) div 2) };
+
+        if @rule.all ~~ Pair:D {
+            my $colors = @rule».key.flat(:hammer).Bag.elems;
+            return {
+                kind => 'replacements',
+                replacements => @rule.Array,
+                :$colors,
+                left => (@rule[0].key.elems - 1) div 2,
+                right => (@rule[0].key.elems - 1) div 2
+            }
         }
+
         if @rule[0] ~~ Callable {
             my ($left, $right) = local-range(@rule[2] // 1);
             return { kind => 'explicit-callable', callable => @rule[0],
@@ -105,10 +112,10 @@ class CellularAutomata::Scan {
                 ($left, $right) = local-range(@rule[2] // 1) if @rule[2]:exists;
             }
         }
-        my %model = (kind => $kind, code => $code, colors => $colors,
-                     left => $left, right => $right);
+        my %model = kind => $kind, code => $code, colors => $colors,
+                     left => $left, right => $right;
         %model<offsets> = @offsets if @offsets;
-        %model
+        return %model
     }
 
     sub decode-rule(Mu:D $rule --> Hash:D) {
@@ -148,7 +155,7 @@ class CellularAutomata::Scan {
         $old.Int
     }
 
-    sub  model-replacement-value(%model, @neighborhood --> Mu:D) {
+    sub model-replacement-value(%model, @neighborhood --> Mu:D) {
         for %model<replacements>.List -> $replacement {
             my @pattern = $replacement.key ~~ Positional ?? $replacement.key.list !! ($replacement.key,);
             next unless @pattern.elems == @neighborhood.elems;
@@ -245,8 +252,8 @@ class CellularAutomata::Scan {
         # Redundant with the current signature.
         fail 'Negative evolution steps are not supported by (CellularAutomata::Scan).' if $maximum < 0;
 
-        my $background = %args<background> // 0;
-        my $cyclic = (%args<background>:exists).not && !is-positional(@init[0] // Nil);
+        my $background = 0;
+        my $cyclic = is-positional(@init) && @init.all ~~ Int:D;
         my @initial = @init.Array;
         if @init.elems == 2 && is-positional(@init[0]) {
             @initial = @init[0].Array;

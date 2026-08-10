@@ -10,7 +10,9 @@ multi sub center-array(
     Int:D :$interpolation-order = 1
     --> Positional:D
 )
+```
 
+```raku
 multi sub center-array(
     Mu:D $array,
     Mu:D $dimension-specification,
@@ -42,12 +44,12 @@ is treated as a one-element array before centering, so
 The dimension specification is either an integer or a positional sequence of
 dimension specifications.
 
-| Form | Meaning |
-|---|---|
-| `Int $n` | Target size of the applicable/deepest dimension. |
-| `[$n1, $n2, ...]` | Target size in each dimension, outermost first. |
-| `Inherited` | Keep the corresponding input dimension unchanged. |
-| `All` | Infer the dimension from the input collection. |
+| Form              | Meaning                                           |
+|-------------------|---------------------------------------------------|
+| `Int $n`          | Target size of the applicable/deepest dimension.  |
+| `[$n1, $n2, ...]` | Target size in each dimension, outermost first.   |
+| `Inherited`       | Keep the corresponding input dimension unchanged. |
+| `All`             | Infer the dimension from the input collection.    |
 
 Every explicit target dimension must be a non-negative integer or one of the
 sentinels above. `Inherited` means that no padding or cropping occurs at that
@@ -88,16 +90,16 @@ center-array([1, 2, 3], 6, :padding('Extrapolated'));
 
 Supported named modes are:
 
-| Mode | Meaning |
-|---|---|
-| `'Extrapolated'` | Polynomial extrapolation beyond the centered data. |
-| `'Fixed'` | Repeat boundary values, including consistent corners. |
-| `'Periodic'` | Repeat the complete array cyclically. |
-| `'Reflected'` | Reflect at boundaries without repeating the edge. |
-| `'ReflectedDifferences'` | Reflect edge differences antisymmetrically. |
-| `'Reversed'` | Repeat the reversed source sequence. |
-| `'ReversedDifferences'` | Repeat reversed edge differences. |
-| `'ReversedNegation'` | Repeat reversed, numerically negated values. |
+| Mode                     | Meaning                                               |
+|--------------------------|-------------------------------------------------------|
+| `'Extrapolated'`         | Polynomial extrapolation beyond the centered data.    |
+| `'Fixed'`                | Repeat boundary values, including consistent corners. |
+| `'Periodic'`             | Repeat the complete array cyclically.                 |
+| `'Reflected'`            | Reflect at boundaries without repeating the edge.     |
+| `'ReflectedDifferences'` | Reflect edge differences antisymmetrically.           |
+| `'Reversed'`             | Repeat the reversed source sequence.                  |
+| `'ReversedDifferences'`  | Repeat reversed edge differences.                     |
+| `'ReversedNegation'`     | Repeat reversed, numerically negated values.          |
 
 When cropping is required, padding is not evaluated for the removed region.
 Value-dependent modes may fail for empty source dimensions because no boundary
@@ -107,8 +109,7 @@ For `Extrapolated` padding, implementations should expose the same option as
 `array-pad`:
 
 ```raku
-center-array(@values, 8, :padding('Extrapolated'),
-    :interpolation-order(2));
+center-array(@values, 8, :padding('Extrapolated'), :interpolation-order(2));
 ```
 
 The default interpolation order is `1`. The option must be accepted either as

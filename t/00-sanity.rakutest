@@ -1,5 +1,0 @@
-use v6.d;
-use CellularAutomata;
-use Test;
-
-done-testing;

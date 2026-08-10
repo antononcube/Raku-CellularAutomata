@@ -1,0 +1,21 @@
+use v6.d;
+use CellularAutomata::Utilities;
+use Test;
+
+## 1
+# In Wolfram Language (WL) see
+# ResourceFunction["CellularAutomatonFromNumber"][73]
+is-deeply
+        cellular-automaton-from-number(73).Array,
+        [(1, 1, 1) => 0, (1, 1, 0) => 1, (1, 0, 1) => 0, (1, 0, 0) => 0, (0, 1, 1) => 1, (0, 1, 0) => 0, (0, 0, 1) => 0, (0, 0, 0) => 1],
+        'rule 73';
+
+## 1
+# In WL see
+# ResourceFunction["CellularAutomatonFromNumber"][231]
+is-deeply
+        cellular-automaton-from-number(231).Array,
+        [(1, 1, 1) => 1, (1, 1, 0) => 1, (1, 0, 1) => 1, (1, 0, 0) => 0, (0, 1, 1) => 0, (0, 1, 0) => 1, (0, 0, 1) => 1, (0, 0, 0) => 1],
+        'rule 231';
+
+done-testing;

@@ -253,27 +253,39 @@ class CellularAutomata::Scan {
         fail 'Negative evolution steps are not supported by (CellularAutomata::Scan).' if $maximum < 0;
 
         my $background = 0;
-        my $cyclic = is-positional(@init) && @init.all ~~ Int:D;
+        my $cyclic-init = is-positional(@init) && @init.all ~~ Int:D;
+        my $cyclic-background = False;
         my @initial = @init.Array;
         if @init.elems == 2 && is-positional(@init[0]) {
             @initial = @init[0].Array;
             $background = @init[1];
-            $cyclic = False;
+            $cyclic-init = False;
+            $cyclic-background = is-positional(@init[1]) && @init[1].all ~~ Int:D;
         }
 
         fail 'Initial condition must not be empty.' unless @initial.elems;
 
-        my $required-width = @initial.elems + ($cyclic ?? 0 !! ((%model<left> + %model<right>) * $maximum));
-        if !$cyclic && @initial.elems < $required-width {
-            my $left-padding = %model<left> * $maximum;
-            my $right-padding = %model<right> * $maximum;
-            @initial = array-pad(item(@initial), [$left-padding, $right-padding], item($background));
+        my $required-width = @initial.elems + ($cyclic-init ?? 0 !! ((%model<left> + %model<right>) * $maximum));
+
+        my $left-padding = %model<left> * $maximum;
+        my $right-padding = %model<right> * $maximum;
+
+        if $cyclic-background {
+            # Per spec:
+            #  The first active element is aligned with the first background element. A background list repeats as necessary.
+            @initial =
+                    |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
+                    |@initial,
+                    |($background xx ($right-padding div $background.elems + 1)).flat(:hammer).head($right-padding);
+        } elsif !$cyclic-init && @initial.elems < $required-width {
+                @initial = array-pad(item(@initial), [$left-padding, $right-padding], item($background));
         }
+
         my @states;
         @states.push(item(@initial.Array));
         for 1 .. $maximum -> $step {
             my $current-state = @states[*- 1];
-            @states.push(item(next-state($current-state, %model, $step, $background, :$cyclic)));
+            @states.push(item(next-state($current-state, %model, $step, $background, cyclic => $cyclic-init)));
         }
         my @selected = %selection<selected>.map({ @states[$_ // 0] // @states[*- 1] }).Array;
         if (%args<space-specification>:exists) || (%args<space>:exists) {

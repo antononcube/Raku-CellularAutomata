@@ -2,6 +2,11 @@ use v6.d;
 
 unit module CellularAutomata;
 use CellularAutomata::Scan;
+use CellularAutomata::Utilities;
+
+#==========================================================
+# Cellular automaton
+#==========================================================
 
 #| Generates a list representing the evolution of the cellular automaton.
 proto sub cellular-automaton(|) is export {*}
@@ -29,7 +34,13 @@ multi sub cellular-automaton($rule,
 #==========================================================
 
 #| Generates a text or HTML table representing the given rule.
-sub rule-table(@rules, :$method = Whatever, *%args) is export {
+proto sub rule-table($spec, :$method = Whatever, *%args) is export {*}
+
+multi sub rule-table(UInt:D $rule-id, :$method = Whatever, *%args) {
+    rule-table(cellular-automaton-from-number($rule-id), |%args)
+}
+
+multi sub rule-table(@rules, :$method = Whatever, *%args) {
     given $method {
         when $_.isa(Whatever) || $_ ~~ Str:D && $_.lc eq 'text' {
             text-rule-table(@rules, |%args)

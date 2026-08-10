@@ -2,6 +2,10 @@ use v6.d;
 
 unit module CellularAutomata::Utilities;
 
+#==========================================================
+# Array padding helpers
+#==========================================================
+
 sub positional(Mu:D $value --> Bool:D) {
     $value ~~ Positional && $value !~~ Str
 }
@@ -196,6 +200,10 @@ multi sub array-pad(
     pad-recursive($array, amounts($padding-specification, $rank), 0, $padding, $interpolation-order)
 }
 
+#==========================================================
+# Center array helpers
+#==========================================================
+
 sub shape(Mu:D $value --> Array:D) {
     return [] unless positional($value);
     my @children = $value.list;
@@ -213,10 +221,10 @@ sub wrap-rank(Mu:D $value, Int:D $extra --> Mu:D) {
     $extra <= 0 ?? $value !! wrap-rank([$value], $extra - 1)
 }
 
-sub _filled-shape(Mu:D $shape, Int:D $depth, Mu:D $value --> Mu:D) {
+sub filled-shape(Mu:D $shape, Int:D $depth, Mu:D $value --> Mu:D) {
     my @shape = $shape.list;
     return local-clone($value) if $depth >= @shape.elems;
-    (0 ..^ @shape[$depth]).map({ _filled-shape($shape, $depth + 1, $value) }).Array
+    (0 ..^ @shape[$depth]).map({ filled-shape($shape, $depth + 1, $value) }).Array
 }
 
 sub rectangularize(Mu:D $value, Mu:D $shape, Int:D $depth, Mu:D $padding --> Mu:D) {
@@ -225,7 +233,7 @@ sub rectangularize(Mu:D $value, Mu:D $shape, Int:D $depth, Mu:D $padding --> Mu:
     my @children = positional($value) ?? $value.list !! [];
     my @result = @children.map({ rectangularize($_, $shape, $depth + 1, $padding) }).Array;
     while @result.elems < @shape[$depth] {
-        @result.push(_filled-shape($shape, $depth + 1, $padding));
+        @result.push(filled-shape($shape, $depth + 1, $padding));
     }
     @result[0 ..^ @shape[$depth]].Array
 }
@@ -309,5 +317,23 @@ multi sub center-array(
     array-pad($source, item($amount-specification), $padding, :$interpolation-order)
 }
 
+#==========================================================
+# List convolve
+#==========================================================
+
 #| Forms the convolution of a kernel with a list.
 our proto sub list-convolve($kernel, $data, |) is export {*}
+
+
+#==========================================================
+# Cellar automaton rules from number
+#==========================================================
+
+sub cellular-automaton-from-number(UInt:D $rn, Int:D :$k = 2, Int:D :$r = 1) is export {
+    my $d = 2 * $r + 1;
+    my @keys = cross(|((^$k).reverse xx $d));
+    my @digits = $rn.base($k).comb;
+    if @digits.elems < $k ** $d { @digits = |('0' xx ($k ** $d - @digits.elems)), |@digits }
+    my @values = @digits.map(*.Int);
+    return @keys Z=> @values;
+}

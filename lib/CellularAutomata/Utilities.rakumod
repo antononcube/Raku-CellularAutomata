@@ -329,7 +329,7 @@ our proto sub list-convolve($kernel, $data, |) is export {*}
 # Cellar automaton rules from number
 #==========================================================
 
-sub cellular-automaton-from-number(UInt:D $rn, Int:D :$k = 2, Int:D :$r = 1) is export {
+sub cellular-automaton-from-number(UInt:D $rn, Int:D :colors(:$k) = 2, Int:D :$r = 1) is export {
     my $d = 2 * $r + 1;
     my @keys = cross(|((^$k).reverse xx $d));
     my @digits = $rn.base($k).comb;

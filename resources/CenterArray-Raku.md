@@ -153,10 +153,10 @@ target size, not an amount to add.
 For one-dimensional lists:
 
 ```raku
-center-array([1, 2, 3], 5)
+center-array([1, 2, 3], 5);
 # [0, 1, 2, 3, 0]
 
-center-array([1, 2, 3, 4, 5, 6, 7, 8, 9], 3)
+center-array([1, 2, 3, 4, 5, 6, 7, 8, 9], 3);
 # [4, 5, 6]
 ```
 

@@ -273,10 +273,11 @@ class CellularAutomata::Scan {
         if $cyclic-background {
             # Per spec:
             #  The first active element is aligned with the first background element. A background list repeats as necessary.
+            my $rhs = @initial.elems + $right-padding;
             @initial =
                     |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
                     |@initial,
-                    |($background xx ($right-padding div $background.elems + 1)).flat(:hammer).head($right-padding);
+                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[ @initial.elems ..^ $rhs ];
         } elsif !$cyclic-init && @initial.elems < $required-width {
                 @initial = array-pad(item(@initial), [$left-padding, $right-padding], item($background));
         }

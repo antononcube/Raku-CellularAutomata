@@ -243,7 +243,18 @@ class CellularAutomata::Scan {
         { maximum => @selected.max, selected => @selected.Array, scalar => False }
     }
 
-    method evolve(:$rule!, :@init!, :steps(:$time) = 1, *%args --> Mu:D) {
+    sub normalize-pad-method($spec, @init --> Str:D) {
+        return do given $spec {
+            when Whatever { is-positional(@init) && @init.all ~~ Int:D ?? 'last' !! 'init' }
+            when $_ ~~ Str:D && $_.lc ∈ <last-state last> { 'last' }
+            when $_ ~~ Str:D && $_.lc ∈ <init-state init initial-state initial> { 'init' }
+            default {
+                die 'The pad method value is expected to be one of "last-state", "init-state", or Whatever.'
+            }
+        }
+    }
+
+    method evolve(:$rule!, :@init!, :steps(:$time) = 1, :$pad-method is copy = Whatever, *%args --> Mu:D) {
         my %model = decode-rule($rule);
         my %selection = time-selection($time);
         my $maximum = %selection<maximum>.Int;
@@ -251,33 +262,32 @@ class CellularAutomata::Scan {
         # Redundant with the current signature.
         fail 'Negative evolution steps are not supported by (CellularAutomata::Scan).' if $maximum < 0;
 
+        my $cyclic = normalize-pad-method($pad-method, @init) eq 'last';
         my $background = 0;
-        my $cyclic-init = is-positional(@init) && @init.all ~~ Int:D;
-        my $cyclic-background = False;
         my @initial-state = @init.Array;
-        if @init.elems == 2 && is-positional(@init[0]) {
+        if @init.elems == 2 {
             @initial-state = @init[0].Array;
             $background = @init[1];
-            $cyclic-init = False;
-            $cyclic-background = is-positional(@init[1]) && @init[1].all ~~ Int:D;
+            $background = [$background, ] unless is-positional($background);
         }
 
         fail 'Initial condition must not be empty.' unless @initial-state.elems;
 
-        my $required-width = @initial-state.elems + ($cyclic-init ?? 0 !! ((%model<left> + %model<right>) * $maximum));
+        # Left as reminder of $cyclic-method being True
+        my $required-width = @initial-state.elems + ($cyclic ?? 0 !! ((%model<left> + %model<right>) * $maximum));
 
         my $left-padding = %model<left> * $maximum;
         my $right-padding = %model<right> * $maximum;
 
-        if $cyclic-background {
+        if !$cyclic {
             # Per spec:
             #  The first active element is aligned with the first background element. A background list repeats as necessary.
             my $rhs = @initial-state.elems + $right-padding;
             @initial-state =
                     |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
                     |@initial-state,
-                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[ @initial-state.elems ..^ $rhs ];
-        } elsif !$cyclic-init && @initial-state.elems < $required-width {
+                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[@initial-state.elems ..^ $rhs];
+        } elsif @initial-state.elems < $required-width {
                 @initial-state = array-pad(item(@initial-state), [$left-padding, $right-padding], item($background));
         }
 
@@ -285,7 +295,7 @@ class CellularAutomata::Scan {
         @states.push(item(@initial-state.Array));
         for 1 .. $maximum -> $step {
             my $current-state = @states[*- 1];
-            @states.push(item(next-state($current-state, %model, $step, $background, cyclic => $cyclic-init)));
+            @states.push(item(next-state($current-state, %model, $step, $background, :$cyclic)));
         }
         my @selected = %selection<selected>.map({ @states[$_ // 0] // @states[*- 1] }).Array;
         if (%args<space-specification>:exists) || (%args<space>:exists) {

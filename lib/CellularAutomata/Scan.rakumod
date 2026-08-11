@@ -157,7 +157,7 @@ class CellularAutomata::Scan {
 
     sub model-replacement-value(%model, @neighborhood --> Mu:D) {
         for %model<replacements>.List -> $replacement {
-            my @pattern = $replacement.key ~~ Positional ?? $replacement.key.list !! ($replacement.key,);
+            my @pattern = $replacement.key ~~ Positional ?? $replacement.key.List !! ($replacement.key,);
             next unless @pattern.elems == @neighborhood.elems;
             next unless ([&&] @pattern.kv.map(-> $index, $value {
                 $value === Any ?? True !! $value eqv @neighborhood[$index]
@@ -223,9 +223,9 @@ class CellularAutomata::Scan {
         fail 'Time specification must be an integer or positional selector.'
         unless is-positional($time) && $time.elems;
 
-        my @values = $time.list;
+        my @values = $time.List;
         if @values[0] ~~ Positional {
-            my @inner = @values[0].list;
+            my @inner = @values[0].List;
             if @inner.elems == 1 {
                 return { maximum => @inner[0].Int, selected => [@inner[0].Int], scalar => True };
             }
@@ -243,8 +243,7 @@ class CellularAutomata::Scan {
         { maximum => @selected.max, selected => @selected.Array, scalar => False }
     }
 
-    method evolve(:$rule!, :@init! is copy, :steps(:$time) = 1, *%args --> Mu:D) {
-        fail 'evolve requires a rule named :rule' unless $rule.defined;
+    method evolve(:$rule!, :@init!, :steps(:$time) = 1, *%args --> Mu:D) {
         my %model = decode-rule($rule);
         my %selection = time-selection($time);
         my $maximum = %selection<maximum>.Int;
@@ -255,17 +254,17 @@ class CellularAutomata::Scan {
         my $background = 0;
         my $cyclic-init = is-positional(@init) && @init.all ~~ Int:D;
         my $cyclic-background = False;
-        my @initial = @init.Array;
+        my @initial-state = @init.Array;
         if @init.elems == 2 && is-positional(@init[0]) {
-            @initial = @init[0].Array;
+            @initial-state = @init[0].Array;
             $background = @init[1];
             $cyclic-init = False;
             $cyclic-background = is-positional(@init[1]) && @init[1].all ~~ Int:D;
         }
 
-        fail 'Initial condition must not be empty.' unless @initial.elems;
+        fail 'Initial condition must not be empty.' unless @initial-state.elems;
 
-        my $required-width = @initial.elems + ($cyclic-init ?? 0 !! ((%model<left> + %model<right>) * $maximum));
+        my $required-width = @initial-state.elems + ($cyclic-init ?? 0 !! ((%model<left> + %model<right>) * $maximum));
 
         my $left-padding = %model<left> * $maximum;
         my $right-padding = %model<right> * $maximum;
@@ -273,17 +272,17 @@ class CellularAutomata::Scan {
         if $cyclic-background {
             # Per spec:
             #  The first active element is aligned with the first background element. A background list repeats as necessary.
-            my $rhs = @initial.elems + $right-padding;
-            @initial =
+            my $rhs = @initial-state.elems + $right-padding;
+            @initial-state =
                     |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
-                    |@initial,
-                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[ @initial.elems ..^ $rhs ];
-        } elsif !$cyclic-init && @initial.elems < $required-width {
-                @initial = array-pad(item(@initial), [$left-padding, $right-padding], item($background));
+                    |@initial-state,
+                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[ @initial-state.elems ..^ $rhs ];
+        } elsif !$cyclic-init && @initial-state.elems < $required-width {
+                @initial-state = array-pad(item(@initial-state), [$left-padding, $right-padding], item($background));
         }
 
         my @states;
-        @states.push(item(@initial.Array));
+        @states.push(item(@initial-state.Array));
         for 1 .. $maximum -> $step {
             my $current-state = @states[*- 1];
             @states.push(item(next-state($current-state, %model, $step, $background, cyclic => $cyclic-init)));

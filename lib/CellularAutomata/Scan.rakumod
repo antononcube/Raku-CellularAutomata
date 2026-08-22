@@ -1,5 +1,6 @@
 use v6.d;
 
+use Data::Transformers::Arrays;
 use CellularAutomata::Utilities;
 
 class CellularAutomata::Scan {

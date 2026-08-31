@@ -36,11 +36,29 @@ Four steps of initialization specification:
 .say for cellular-automaton(30, [[1,], 0], 4)
 ```
 
-Show the table of [Rule 30](https://en.wikipedia.org/wiki/Rule_30):
+Show the table of rule `90`;
 
+```raku
+rule-table(90, method => Whatever); # method takes also 'text' and 'html' 
 ```
-rule-table(30)
+
+Show rules of rule 90:
+
+```raku
+use CellularAutomata::Utilities; 
+cellular-automaton-from-number(90)
 ```
+
+Plot the array of 20 steps of [Rule 30](https://en.wikipedia.org/wiki/Rule_30):
+
+```raku, eval=FALSE
+use Graphviz::DOT::Chessboard;
+
+my @mat = cellular-automaton(30,[[1,], 0], 20);
+dot-matrix-plot(@mat, :9graph-size, :0tick-font-size, :0tick-offset):svg
+```
+
+![](./docs/30rule-20steps.svg)
 
 For more examples see the Jupyter notebook ["CellularAutomaton.ipynb"](./docs/CellularAutomaton.ipynb).
 

@@ -1,9 +1,11 @@
 use v6.d;
 
-use Data::Transformers::Arrays;
+use Data::Transformers;
 use CellularAutomata::Utilities;
 
 class CellularAutomata::Scan {
+
+    my @array-pad-modes = <fixed periodic reflected reflected-differences reversed reversed-differences reversed-negation>;
 
     sub is-positional(Mu:D $value --> Bool:D) {
         $value ~~ Array:D | List:D | Seq:D
@@ -90,8 +92,7 @@ class CellularAutomata::Scan {
 
         if @rule[0] ~~ Callable {
             my ($left, $right) = local-range(@rule[2] // 1);
-            return { kind => 'explicit-callable', callable => @rule[0],
-                     colors => 2, left => $left, right => $right };
+            return { kind => 'explicit-callable', callable => @rule[0], colors => 2, left => $left, right => $right };
         }
         my $code = @rule[0].Int;
         my $colors = 2;
@@ -113,8 +114,7 @@ class CellularAutomata::Scan {
                 ($left, $right) = local-range(@rule[2] // 1) if @rule[2]:exists;
             }
         }
-        my %model = kind => $kind, code => $code, colors => $colors,
-                     left => $left, right => $right;
+        my %model = kind => $kind, code => $code, colors => $colors, left => $left, right => $right;
         %model<offsets> = @offsets if @offsets;
         return %model
     }
@@ -179,40 +179,29 @@ class CellularAutomata::Scan {
                 !! callable(@neighborhood, $step)
     }
 
-    sub next-state(@state, %model, Int:D $step, Mu:D $background, Bool:D :$cyclic --> Array:D) {
+    sub next-state(@state, %model, Int:D $step, Int:D $maximum, Mu:D $background, Str:D :$pad-method --> Array:D) {
         my $left = %model<left>.Int;
         my $right = %model<right>.Int;
+
+        my @extended-state = $pad-method eq 'init' ?? array-pad(@state, [$left, $right], $background) !! array-pad(@state, [$left, $right], $pad-method);
+        my @neighborhoods = @extended-state.rotor(($left + $right + 1) => -($left + $right));
+
         my @next;
-        for ^@state.elems -> $position {
-            my @neighborhood;
-            my @offsets = %model<offsets> // (-$left .. $right).Array;
-            for @offsets -> $offset {
-                my $index = $position + $offset;
-                if $cyclic {
-                    my $wrapped-index = (($index mod @state.elems) + @state.elems) mod @state.elems;
-                    @neighborhood.push(@state[$wrapped-index]);
-                } elsif 0 <= $index < @state.elems {
-                    @neighborhood.push(@state[$index]);
-                } else {
-                    if is-positional($background) {
-                        my $wrapped-index = (($index mod $background.elems) + $background.elems) mod $background.elems;
-                        @neighborhood.push($background[$wrapped-index]);
-                    } else {
-                        @neighborhood.push($background);
-                    }
-                }
-            }
-            my $old = @state[$position];
+        for @neighborhoods -> @neighborhood {
             my $value;
             given %model<kind> {
                 when 'number' { $value = model-number-value(%model, @neighborhood) }
                 when 'totalistic' { $value = model-totalistic-value(%model, @neighborhood) }
-                when 'growth' { $value = model-growth-value(%model, @neighborhood, $old) }
+                when 'growth' {
+                    my $old = @state[$left];
+                    $value = model-growth-value(%model, @neighborhood, $old)
+                }
                 when 'replacements' { $value = model-replacement-value(%model, @neighborhood) }
                 default { $value = model-call-rule(%model, @neighborhood, $step) }
             }
             @next.push($value);
         }
+
         @next.Array
     }
 
@@ -246,11 +235,11 @@ class CellularAutomata::Scan {
 
     sub normalize-pad-method($spec, @init --> Str:D) {
         return do given $spec {
-            when Whatever { is-positional(@init) && @init.all ~~ Int:D ?? 'last' !! 'init' }
-            when $_ ~~ Str:D && $_.lc ∈ <last-state last> { 'last' }
-            when $_ ~~ Str:D && $_.lc ∈ <init-state init initial-state initial> { 'init' }
+            when Whatever { is-positional(@init) && @init.all ~~ Int:D ?? 'periodic' !! 'init' }
+            when $_ ~~ Str:D && $_.lc ∈ @array-pad-modes { $_.lc }
+            when $_ ~~ Str:D && $_.lc ∈ <init initial init-spec initial-spec> { 'init' }
             default {
-                die 'The pad method value is expected to be one of "last-state", "init-state", or Whatever.'
+                die "The pad method value is expected to be one of \"init-spec\", \"{@array-pad-modes.join('", "')}\" or Whatever."
             }
         }
     }
@@ -263,7 +252,7 @@ class CellularAutomata::Scan {
         # Redundant with the current signature.
         fail 'Negative evolution steps are not supported by (CellularAutomata::Scan).' if $maximum < 0;
 
-        my $cyclic = normalize-pad-method($pad-method, @init) eq 'last';
+        $pad-method = normalize-pad-method($pad-method, @init);
         my $background = 0;
         my @initial-state = @init.Array;
         if @init.elems == 2 {
@@ -275,28 +264,28 @@ class CellularAutomata::Scan {
         fail 'Initial condition must not be empty.' unless @initial-state.elems;
 
         # Left as reminder of $cyclic-method being True
-        my $required-width = @initial-state.elems + ($cyclic ?? 0 !! ((%model<left> + %model<right>) * $maximum));
+        my $required-width = @initial-state.elems + ($pad-method eq 'periodic' ?? 0 !! ((%model<left> + %model<right>) * $maximum));
 
         my $left-padding = %model<left> * $maximum;
         my $right-padding = %model<right> * $maximum;
 
-        if !$cyclic {
-            # Per spec:
-            #  The first active element is aligned with the first background element. A background list repeats as necessary.
-            my $rhs = @initial-state.elems + $right-padding;
-            @initial-state =
-                    |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
-                    |@initial-state,
-                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[@initial-state.elems ..^ $rhs];
-        } elsif @initial-state.elems < $required-width {
-                @initial-state = array-pad(item(@initial-state), [$left-padding, $right-padding], item($background));
+#        if $pad-method eq 'init' {
+#            # Per spec:
+#            #  The first active element is aligned with the first background element. A background list repeats as necessary.
+#            my $rhs = @initial-state.elems + $right-padding;
+#            @initial-state =
+#                    |($background xx ($left-padding div $background.elems + 1)).flat(:hammer).tail($left-padding),
+#                    |@initial-state,
+#                    |($background xx ($rhs div $background.elems + 1)).flat(:hammer)[@initial-state.elems ..^ $rhs];
+        if @initial-state.elems < $required-width {
+            @initial-state = array-pad(item(@initial-state), [$left-padding, $right-padding], item($background));
         }
 
         my @states;
         @states.push(item(@initial-state.Array));
         for 1 .. $maximum -> $step {
             my $current-state = @states[*- 1];
-            @states.push(item(next-state($current-state, %model, $step, $background, :$cyclic)));
+            @states.push(item(next-state($current-state, %model, $step, $maximum, $background, :$pad-method)));
         }
         my @selected = %selection<selected>.map({ @states[$_ // 0] // @states[*- 1] }).Array;
         if (%args<space-specification>:exists) || (%args<space>:exists) {

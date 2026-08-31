@@ -34,13 +34,13 @@ multi sub cellular-automaton($rule,
 #==========================================================
 
 #| Generates a text or HTML table representing the given rule.
-proto sub rule-table($spec, :$method = Whatever, *%args) is export {*}
+proto sub rule-table($spec, :format(:$method) = Whatever, *%args) is export {*}
 
-multi sub rule-table(UInt:D $rule-id, :$method = Whatever, *%args) {
-    rule-table(cellular-automaton-from-number($rule-id), |%args)
+multi sub rule-table(UInt:D $rule-id, :format(:$method) = Whatever, *%args) {
+    rule-table(cellular-automaton-from-number($rule-id), :$method, |%args)
 }
 
-multi sub rule-table(@rules, :$method = Whatever, *%args) {
+multi sub rule-table(@rules, :format(:$method) = Whatever, *%args) {
     given $method {
         when $_.isa(Whatever) || $_ ~~ Str:D && $_.lc eq 'text' {
             text-rule-table(@rules, |%args)

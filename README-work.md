@@ -29,21 +29,11 @@ use CellularAutomata;
 
 cellular-automaton(30, [1, 0, 0, 0, 0, 0], 2)
 ```
-```
-# [[1 0 0 0 0 0] [1 1 0 0 0 1] [0 0 1 0 1 1]]
-```
 
 Four steps of initialization specification:
 
 ```raku
 .say for cellular-automaton(30, [[1,], 0], 4)
-```
-```
-# [0 0 0 0 1 0 0 0 0]
-# [0 0 0 1 1 1 0 0 0]
-# [0 0 1 1 0 0 1 0 0]
-# [0 1 1 0 1 1 1 1 0]
-# [1 1 0 0 1 0 0 0 1]
 ```
 
 Show the table of [Rule 30](https://en.wikipedia.org/wiki/Rule_30):
